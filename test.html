@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test</title>
+</head>
+<body>
+<script type="module">
+
+import * as nxstr from "./nxstr.js";
+connect("wss://relay.damus.io");
+socket.addEventListener("open", async (e) => {
+  nxstr.login();
+  const ev = {
+    kind: 1,
+    tags: [],
+    content: "Hello"
+  };
+  await nxstr.sign(ev);
+  socket.send(JSON.stringify(["EVENT",ev]));
+});
+
+</script>
+</body>
+</html>
