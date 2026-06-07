@@ -1,0 +1,2 @@
+# nxstr
+Random Nostr library
