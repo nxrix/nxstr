@@ -64,14 +64,15 @@ const getSecretKey = () => {
 }
 
 const generateKeys = () => {
-  sk = b2h(nobleSecp256k1.utils.randomPrivateKey());
-  pk = nobleSecp256k1.schnorr.getPublicKey(sk);
+  const k = nobleSecp256k1.utils.randomPrivateKey();
+  sk = b2h(k);
+  pk = b2h(nobleSecp256k1.schnorr.getPublicKey(sk));
 }
 
 const login = (csk) => {
   if (csk) {
     sk = csk;
-    pk = nobleSecp256k1.schnorr.getPublicKey(csk);
+    pk = b2h(nobleSecp256k1.schnorr.getPublicKey(h2b(csk)));
   } else {
     generateKeys();
   }
@@ -90,7 +91,7 @@ const sign = async (event,csk) => {
     event.content
   ]);
   event.id = await sha256(data);
-  event.sig = await nobleSecp256k1.schnorr.sign(event.id,csk||sk);
+  event.sig = await nobleSecp256k1.schnorr.sign(event.id,h2b(csk||sk));
   return event;
 }
 
