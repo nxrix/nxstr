@@ -47,10 +47,10 @@ scripts:
 const nxstr = (() => {
 
   let sk = null;
-  let pk = null;
 
   return {
 
+    pk: null,
     socket: null,
 
     b2h: (a) => Array.from(a).map(b=>b.toString(16).padStart(2,"0")).join(""),
@@ -66,13 +66,13 @@ const nxstr = (() => {
 
     generateKeys: () => {
       sk = nxstr.b2h(nobleSecp256k1.utils.randomPrivateKey());
-      pk = nxstr.schnorr.getPublicKey(sk);
+      nxstr.pk = nxstr.schnorr.getPublicKey(sk);
     },
 
     login: (csk) => {
       if (csk) {
-        pk = nxstr.schnorr.getPublicKey(csk);
         sk = csk;
+        nxstr.pk = nxstr.schnorr.getPublicKey(csk);
       } else {
         nxstr.generateKeys();
       }
@@ -84,13 +84,9 @@ const nxstr = (() => {
       }
       return null;
     },
-  
-    getPublicKey: () => {
-      return pk;
-    },
 
     sign: async (event,csk) => {
-      if (!event.pubkey) event.pubkey = pk;
+      if (!event.pubkey) event.pubkey = nxstr.pk;
       if (!event.created_at) event.created_at = Math.floor(Date.now()/1000);
       if (!event.content) event.content = "";
       const data = JSON.stringify([
