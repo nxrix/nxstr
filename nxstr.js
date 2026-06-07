@@ -40,7 +40,7 @@ received:
 
 scripts:
   <script src="https://cdn.jsdelivr.net/npm/@noble/secp256k1@3.1.0/index.min.js"></script>
-  <script src="https://nxrix.github.io/nxstr/src/nxstr.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/nxrix/nxstr/nxstr.js"></script>
 
 */
 
