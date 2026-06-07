@@ -53,8 +53,10 @@ const b642h = (b) => Array.from(atob(b)).map(c=>c.charCodeAt(0).toString(16).pad
 const sha256 = async (data) => {
   const encoder = new TextEncoder();
   const hb = await crypto.subtle.digest("SHA-256",encoder.encode(data));
-  return b2h(new Uint8Array(hb));
+  return new Uint8Array(hb);
 }
+
+nobleSecp256k1.hashes.sha256Async = sha256;
 
 const getSecretKey = () => {
   if (confirm("Do you want to export your secret key?")) {
@@ -64,9 +66,9 @@ const getSecretKey = () => {
 }
 
 const generateKeys = () => {
-  const k = nobleSecp256k1.utils.randomPrivateKey();
+  const k = nobleSecp256k1.utils.randomSecretKey();
   sk = b2h(k);
-  pk = b2h(nobleSecp256k1.schnorr.getPublicKey(sk));
+  pk = b2h(nobleSecp256k1.schnorr.getPublicKey(k));
 }
 
 const login = (csk) => {
@@ -91,7 +93,8 @@ const sign = async (event,csk) => {
     event.content
   ]);
   event.id = await sha256(data);
-  event.sig = await nobleSecp256k1.schnorr.sign(event.id,h2b(csk||sk));
+  event.sig = b2h(await nobleSecp256k1.schnorr.signAsync(event.id,h2b(csk||sk)));
+  event.id = b2h(event.id);
   return event;
 }
 
