@@ -44,57 +44,54 @@ import * as nobleSecp256k1 from "https://cdn.jsdelivr.net/npm/@noble/secp256k1@3
 
 let sk = null;
 let pk = null;
-let socket = null;
 
-const b2h = (a) => Array.from(a).map(b=>b.toString(16).padStart(2,"0")).join("");
-const h2b = (h) => Uint8Array.from(h.match(/.{1,2}/g).map(b=>parseInt(b,16)));
-const b642h = (b) => Array.from(atob(b)).map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("");
+const b2h = (b) => Array.from(b).map(i=>i.toString(16).padStart(2,"0")).join("");
+const h2b = (h) => Uint8Array.from(h.match(/.{1,2}/g).map(i=>parseInt(i,16)));
 
-const sha256 = async (data) => new Uint8Array(await crypto.subtle.digest("SHA-256",data));
+const sha256 = async (b) => new Uint8Array(await crypto.subtle.digest("SHA-256",b));
 nobleSecp256k1.hashes.sha256Async = sha256;
 
-const getSecretKey = () => {
-  if (confirm("Do you want to export your secret key?")) {
-    return sk;
-  }
-  return null;
-}
-
-const generateKeys = () => {
-  const k = nobleSecp256k1.utils.randomSecretKey();
-  sk = b2h(k);
-  pk = b2h(nobleSecp256k1.schnorr.getPublicKey(k));
-}
-
-const login = (csk) => {
+const generateKeys = (csk) => {
   if (csk) {
     sk = csk;
     pk = b2h(nobleSecp256k1.schnorr.getPublicKey(h2b(csk)));
   } else {
-    generateKeys();
+    const k = nobleSecp256k1.utils.randomSecretKey();
+    sk = b2h(k);
+    pk = b2h(nobleSecp256k1.schnorr.getPublicKey(k));
   }
 }
 
-const sign = async (event,csk) => {
-  if (!event.pubkey) event.pubkey = pk;
-  if (!event.created_at) event.created_at = Math.floor(Date.now()/1000);
-  if (!event.content) event.content = "";
+const sign = async (e,csk) => {
+  const se = { ...e };
+  if (se.pubkey === undefined) se.pubkey = pk;
+  if (se.created_at === undefined) se.created_at = Math.floor(Date.now()/1000);
+  if (se.tags === undefined) se.tags = [];
+  if (se.content === undefined) se.content = "";
   const data = JSON.stringify([
     0,
-    event.pubkey,
-    event.created_at,
-    event.kind,
-    event.tags,
-    event.content
+    se.pubkey,
+    se.created_at,
+    se.kind,
+    se.tags,
+    se.content
   ]);
-  event.id = await sha256(new TextEncoder().encode(data));
-  event.sig = b2h(await nobleSecp256k1.schnorr.signAsync(event.id,h2b(csk||sk)));
-  event.id = b2h(event.id);
-  return event;
+  se.id = await sha256(new TextEncoder().encode(data));
+  se.sig = b2h(await nobleSecp256k1.schnorr.signAsync(se.id,h2b(csk||sk)));
+  se.id = b2h(se.id);
+  return se;
 }
 
+const verify = async (event) => {
+  const { id, pubkey, created_at, kind, tags, content, sig } = event;
+  const data = JSON.stringify([0,pubkey,created_at,kind,tags,content]);
+  const cid = await sha256(new TextEncoder().encode(data));
+  if (b2h(cid)!==id) return false;
+  return await nobleSecp256k1.schnorr.verifyAsync(h2b(sig),h2b(id),h2b(pubkey));
+};
+
 const encrypt = async (text,cpk,csk) => {
-  const sharedSecret = nobleSecp256k1.getSharedSecret(csk||sk,"02"+cpk,true).substring(2);
+  const sharedSecret = b2h(nobleSecp256k1.getSharedSecret(csk||sk,"02"+cpk,true).slice(1,33));
   const key = await crypto.subtle.importKey("raw",h2b(sharedSecret),{name:"AES-CBC"},false,["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(16));
   const ciphertext = await crypto.subtle.encrypt({name:"AES-CBC",iv},key,new TextEncoder().encode(text));
@@ -103,60 +100,21 @@ const encrypt = async (text,cpk,csk) => {
 
 const decrypt = async (text,cpk,csk) => {
   const [encryptedMessage,ivB64] = text.split("?iv=");
-  const sharedSecret = nobleSecp256k1.getSharedSecret(csk||sk,"02"+cpk,true).substring(2);
+  const sharedSecret = b2h(nobleSecp256k1.getSharedSecret(csk||sk,"02"+cpk,true).slice(1,33));
   const key = await crypto.subtle.importKey("raw",h2b(sharedSecret),{name:"AES-CBC"},false,["decrypt"]);
   const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
   const decrypted = await crypto.subtle.decrypt({name:"AES-CBC",iv },key,Uint8Array.from(atob(encryptedMessage),c=>c.charCodeAt(0)));
   return new TextDecoder().decode(decrypted);
 }
 
-const connect = (url) => {
-  if (socket) socket.close();
-  socket = new WebSocket(url);
-}
-
-const changeBase = (i,c1,c2) => {
-  const b1 = c1.length;
-  const b2 = c2.length;
-  let lz = 0;
-  while (i[lz]==c1[0]) {
-    lz++;
-  }
-  let d = "0";
-  for (let n=lz;n<i.length; n++) {
-    d = (BigInt(d)*BigInt(b1)+BigInt(c1.indexOf(i[n]))).toString();
-  }
-  if (d=="0") {
-    return c2[0].repeat(lz+1);
-  }
-  let o = "";
-  while (d!="0") {
-    let r = BigInt(d)%BigInt(b2);
-    o = c2[Number(r)]+o;
-    d = (BigInt(d)/BigInt(b2)).toString();
-  }
-  return c2[0].repeat(lz)+o;
-}
-
-const rawToFriendly = (k,f=[0,0,0,0]) => {
-  let bytes = f;
-  for (let i=0;i<32;i++) bytes.push(+("0x"+k[i*2]+k[i*2+1]));
-  return btoa(String.fromCodePoint(...bytes)).replace(/\+/g,"-").replace(/\//g,"_");
-}
-
 export {
+  sk,
   pk,
-  socket,
   b2h,
   h2b,
-  b642h,
-  getSecretKey,
   generateKeys,
-  login,
   sign,
+  verify,
   encrypt,
-  decrypt,
-  connect,
-  changeBase,
-  rawToFriendly
+  decrypt
 };
