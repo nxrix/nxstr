@@ -1,6 +1,10 @@
 # nxstr
 Random Nostr library
 
+```js
+import * as nxstr from "https://cdn.jsdelivr.net/gh/nxrix/nxstr@v1.0.0/nxstr.js"
+```
+
 ## API
 ```
 getSecretKey() - returns secretKeyHex
