@@ -82,8 +82,8 @@ const sign = async (e,csk) => {
   return se;
 }
 
-const verify = async (event) => {
-  const { id, pubkey, created_at, kind, tags, content, sig } = event;
+const verify = async (e) => {
+  const { id, pubkey, created_at, kind, tags, content, sig } = e;
   const data = JSON.stringify([0,pubkey,created_at,kind,tags,content]);
   const cid = await sha256(new TextEncoder().encode(data));
   if (b2h(cid)!==id) return false;
