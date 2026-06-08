@@ -50,12 +50,7 @@ const b2h = (a) => Array.from(a).map(b=>b.toString(16).padStart(2,"0")).join("")
 const h2b = (h) => Uint8Array.from(h.match(/.{1,2}/g).map(b=>parseInt(b,16)));
 const b642h = (b) => Array.from(atob(b)).map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("");
 
-const sha256 = async (data) => {
-  const encoder = new TextEncoder();
-  const hb = await crypto.subtle.digest("SHA-256",encoder.encode(data));
-  return new Uint8Array(hb);
-}
-
+const sha256 = async (data) => new Uint8Array(await crypto.subtle.digest("SHA-256",data));
 nobleSecp256k1.hashes.sha256Async = sha256;
 
 const getSecretKey = () => {
@@ -92,7 +87,7 @@ const sign = async (event,csk) => {
     event.tags,
     event.content
   ]);
-  event.id = await sha256(data);
+  event.id = await sha256(new TextEncoder().encode(data));
   event.sig = b2h(await nobleSecp256k1.schnorr.signAsync(event.id,h2b(csk||sk)));
   event.id = b2h(event.id);
   return event;
