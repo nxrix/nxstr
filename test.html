@@ -9,8 +9,8 @@
 <script type="module">
 
 import * as nxstr from "./nxstr.js";
-connect("wss://relay.damus.io");
-socket.addEventListener("open", async (e) => {
+nxstr.connect("wss://relay.damus.io");
+nxstr.socket.addEventListener("open", async (e) => {
   nxstr.login();
   const ev = {
     kind: 1,
@@ -18,8 +18,9 @@ socket.addEventListener("open", async (e) => {
     content: "Hello"
   };
   await nxstr.sign(ev);
-  socket.send(JSON.stringify(["EVENT",ev]));
+  nxstr.socket.send(JSON.stringify(["EVENT",ev]));
 });
+//["OK","aca08d11a80470fcb13b1d2536549f3a5540bc8b1eb7c4f9e4a21fd1b0bb9eef",false,"invalid: bad signature"]
 
 </script>
 </body>
