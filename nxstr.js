@@ -68,13 +68,13 @@ const getSecretKey = () => {
 const generateKeys = () => {
   const k = nobleSecp256k1.utils.randomSecretKey();
   sk = b2h(k);
-  pk = b2h(nobleSecp256k1.schnorr.getPublicKey(k)).substring(2);
+  pk = b2h(nobleSecp256k1.schnorr.getPublicKey(k));
 }
 
 const login = (csk) => {
   if (csk) {
     sk = csk;
-    pk = b2h(nobleSecp256k1.schnorr.getPublicKey(h2b(csk))).substring(2);
+    pk = b2h(nobleSecp256k1.schnorr.getPublicKey(h2b(csk)));
   } else {
     generateKeys();
   }
