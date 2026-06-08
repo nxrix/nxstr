@@ -45,6 +45,9 @@ import * as nobleSecp256k1 from "https://cdn.jsdelivr.net/npm/@noble/secp256k1@3
 let sk = null;
 let pk = null;
 
+const getSecretKey = () => sk;
+const getPublicKey = () => pk;
+
 const b2h = (b) => Array.from(b).map(i=>i.toString(16).padStart(2,"0")).join("");
 const h2b = (h) => Uint8Array.from(h.match(/.{1,2}/g).map(i=>parseInt(i,16)));
 
@@ -108,8 +111,8 @@ const decrypt = async (text,cpk,csk) => {
 }
 
 export {
-  sk,
-  pk,
+  getSecretKey,
+  getPublicKey,
   b2h,
   h2b,
   generateKeys,
