@@ -4,7 +4,7 @@ Random Nostr library
 Built with [noble-secp256k1](https://github.com/paulmillr/noble-secp256k1)
 
 ```js
-import * as nxstr from "https://cdn.jsdelivr.net/gh/nxrix/nxstr@v1.0.0/nxstr.js";
+import * as nxstr from "https://cdn.jsdelivr.net/gh/nxrix/nxstr@1.0.0/nxstr.js";
 ```
 
 ## API
