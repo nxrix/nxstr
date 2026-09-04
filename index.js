@@ -94,8 +94,8 @@ const verify = async (e) => {
 };
 
 const encrypt = async (text,cpk,csk) => {
-  const sharedSecret = b2h(nobleSecp256k1.getSharedSecret(csk||sk,"02"+cpk,true).slice(1,33));
-  const key = await crypto.subtle.importKey("raw",h2b(sharedSecret),{name:"AES-CBC"},false,["encrypt"]);
+  const sharedSecret = nobleSecp256k1.getSharedSecret(h2b(csk||sk), h2b("02"+cpk), true).slice(1,33);
+  const key = await crypto.subtle.importKey("raw",sharedSecret,{name:"AES-CBC"},false,["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(16));
   const ciphertext = await crypto.subtle.encrypt({name:"AES-CBC",iv},key,new TextEncoder().encode(text));
   return btoa(String.fromCharCode(...new Uint8Array(ciphertext)))+"?iv="+btoa(String.fromCharCode(...iv));
@@ -103,10 +103,10 @@ const encrypt = async (text,cpk,csk) => {
 
 const decrypt = async (text,cpk,csk) => {
   const [encryptedMessage,ivB64] = text.split("?iv=");
-  const sharedSecret = b2h(nobleSecp256k1.getSharedSecret(csk||sk,"02"+cpk,true).slice(1,33));
-  const key = await crypto.subtle.importKey("raw",h2b(sharedSecret),{name:"AES-CBC"},false,["decrypt"]);
+  const sharedSecret = nobleSecp256k1.getSharedSecret(h2b(csk||sk), h2b("02"+cpk), true).slice(1,33);
+  const key = await crypto.subtle.importKey("raw",sharedSecret,{name:"AES-CBC"},false,["decrypt"]);
   const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
-  const decrypted = await crypto.subtle.decrypt({name:"AES-CBC",iv },key,Uint8Array.from(atob(encryptedMessage),c=>c.charCodeAt(0)));
+  const decrypted = await crypto.subtle.decrypt({name:"AES-CBC",iv},key,Uint8Array.from(atob(encryptedMessage),c=>c.charCodeAt(0)));
   return new TextDecoder().decode(decrypted);
 }
 
